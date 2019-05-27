@@ -1,6 +1,6 @@
 import os
 import sys
-from capture.capture import Capture
+from pyshark.capture.capture import Capture
 
 # Define basestring as str if we're in python3.
 if sys.version_info >= (3, 0):
