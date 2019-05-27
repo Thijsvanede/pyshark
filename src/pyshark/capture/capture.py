@@ -3,6 +3,7 @@ import os
 import threading
 import subprocess
 import concurrent.futures
+import warnings
 from distutils.version import LooseVersion
 
 import logbook
@@ -48,7 +49,7 @@ class Capture(object):
                  decryption_key=None, encryption_type='wpa-pwd', output_file=None,
                  decode_as=None,  disable_protocol=None, tshark_path=None,
                  override_prefs=None, capture_filter=None, use_json=False, include_raw=False,
-                 custom_parameters=None):
+                 ignore_corruption_warnings=False, custom_parameters=None):
 
         self.loaded = False
         self.tshark_path = tshark_path
@@ -68,6 +69,7 @@ class Capture(object):
         self._log = logbook.Logger(self.__class__.__name__, level=self.DEFAULT_LOG_LEVEL)
         self._closed = False
         self._custom_parameters = custom_parameters
+        self._ignore_corruption_warnings = ignore_corruption_warnings
         self._tshark_version = None
 
         if include_raw and not use_json:
@@ -431,7 +433,13 @@ class Capture(object):
 
     def __del__(self):
         if self._running_processes:
-            self.close()
+            if self._ignore_corruption_warnings:
+                try:
+                    self.close()
+                except RuntimeError as err:
+                    warnings.warn("Capture deletion warning: {}".format(err), RuntimeWarning)
+            else:
+                self.close()
 
     def get_parameters(self, packet_count=None):
         """
